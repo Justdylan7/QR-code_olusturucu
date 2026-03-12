@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link → QR Kod Oluşturucu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a20;
+      --border: #2a2a32;
+      --text: #e8e8ed;
+      --text-muted: #8888a0;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(99, 102, 241, 0.08), transparent);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    input[type="url"] {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="url"]::placeholder {
+      color: var(--text-muted);
+    }
+
+    input[type="url"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 0.9rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: white;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background: var(--accent-hover);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .qr-wrapper {
+      margin-top: 1.75rem;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 200px;
+      display: none;
+    }
+
+    .qr-wrapper.visible {
+      display: flex;
+    }
+
+    #qrcode {
+      margin-bottom: 1rem;
+    }
+
+    #qrcode canvas,
+    #qrcode img {
+      border-radius: 8px;
+    }
+
+    .download-btn {
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.9rem;
+      background: var(--success);
+      width: auto;
+    }
+
+    .download-btn:hover {
+      background: #16a34a;
+    }
+
+    .error {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 10px;
+      color: #f87171;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .error.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Link → QR Kod</h1>
+    <p class="subtitle">URL girin, QR kodunu anında oluşturun</p>
+
+    <form id="form">
+      <div class="input-group">
+        <label for="url">Link (URL)</label>
+        <input
+          type="url"
+          id="url"
+          name="url"
+          placeholder="https://example.com"
+          required
+          autocomplete="url"
+        >
+      </div>
+      <button type="submit">QR Kod Oluştur</button>
+    </form>
+
+    <p class="error" id="error" role="alert"></p>
+
+    <div class="qr-wrapper" id="qrWrapper">
+      <div id="qrcode"></div>
+      <button type="button" class="download-btn" id="downloadBtn">PNG İndir</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const form = document.getElementById('form');
+    const urlInput = document.getElementById('url');
+    const qrWrapper = document.getElementById('qrWrapper');
+    const qrcodeEl = document.getElementById('qrcode');
+    const errorEl = document.getElementById('error');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentQR = null;
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.add('visible');
+    }
+
+    function hideError() {
+      errorEl.classList.remove('visible');
+      errorEl.textContent = '';
+    }
+
+    function normalizeUrl(value) {
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      if (!/^https?:\/\//i.test(trimmed)) return 'https://' + trimmed;
+      return trimmed;
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      hideError();
+
+      const raw = urlInput.value.trim();
+      if (!raw) {
+        showError('Lütfen bir link girin.');
+        return;
+      }
+
+      const url = normalizeUrl(raw);
+
+      try {
+        new URL(url);
+      } catch {
+        showError('Geçerli bir URL girin.');
+        return;
+      }
+
+      qrcodeEl.innerHTML = '';
+      currentQR = new QRCode(qrcodeEl, {
+        text: url,
+        width: 200,
+        height: 200,
+        colorDark: '#0f0f12',
+        colorLight: '#ffffff'
+      });
+
+      qrWrapper.classList.add('visible');
+
+      downloadBtn.onclick = function () {
+        const canvas = qrcodeEl.querySelector('canvas');
+        if (!canvas) return;
+        const link = document.createElement('a');
+        link.download = 'qrcode.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      };
+    });
+  </script>
+</body>
+</html>
